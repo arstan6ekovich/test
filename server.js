@@ -10,7 +10,15 @@ const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000", // Next.js
+      "http://localhost:5173", // Vite (по умолчанию)
+      "http://localhost:3001", // React (если вы запускаете на этом порту)
+    ],
+  })
+);
 app.use(express.json());
 
 // Swagger setup

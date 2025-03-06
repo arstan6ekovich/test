@@ -1,51 +1,65 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const { PrismaClient } = require("@prisma/client");
 
 dotenv.config();
+const prisma = new PrismaClient();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(cors());
 app.use(express.json());
 
-let items = [];
-
-// GET all items
-app.get("/items", (req, res) => {
+app.get("/api/v1/getAll", async (req, res) => {
+  const items = await prisma.todo.findMany();
   res.json(items);
 });
 
-// POST a new item
-app.post("/items", (req, res) => {
-  const newItem = { id: Date.now(), ...req.body };
-  items.push(newItem);
+app.post("/api/v1/create", async (req, res) => {
+  const { name, description, photo } = req.body;
+  const newItem = await prisma.todo.create({
+    data: { name, description, photo },
+  });
   res.status(201).json(newItem);
 });
 
-// PATCH an item
-app.patch("/items/:id", (req, res) => {
+app.patch("/api/v1/update/:id", async (req, res) => {
   const { id } = req.params;
-  const index = items.findIndex((item) => item.id == id);
-  if (index === -1) return res.status(404).json({ message: "Item not found" });
-  items[index] = { ...items[index], ...req.body };
-  res.json(items[index]);
+  try {
+    const updatedItem = await prisma.todo.update({
+      where: { id: Number(id) },
+      data: req.body,
+    });
+    res.json(updatedItem);
+  } catch {
+    res.status(404).json({ message: "Item not found" });
+  }
 });
 
-// PUT (replace) an item
-app.put("/items/:id", (req, res) => {
+app.put("/api/v1/update/:id", async (req, res) => {
   const { id } = req.params;
-  const index = items.findIndex((item) => item.id == id);
-  if (index === -1) return res.status(404).json({ message: "Item not found" });
-  items[index] = { id: Number(id), ...req.body };
-  res.json(items[index]);
+  try {
+    const updatedItem = await prisma.todo.update({
+      where: { id: Number(id) },
+      data: req.body,
+    });
+    res.json(updatedItem);
+  } catch {
+    res.status(404).json({ message: "Item not found" });
+  }
 });
 
-// DELETE an item
-app.delete("/items/:id", (req, res) => {
+app.delete("/api/v1/delete/:id", async (req, res) => {
   const { id } = req.params;
-  items = items.filter((item) => item.id != id);
-  res.json({ message: "Item deleted" });
+  try {
+    await prisma.todo.delete({
+      where: { id: Number(id) },
+    });
+    res.json({ message: "Item deleted" });
+  } catch {
+    res.status(404).json({ message: "Item not found" });
+  }
 });
 
 app.listen(PORT, () => {
